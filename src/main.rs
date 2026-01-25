@@ -61,6 +61,7 @@ fn make_config() -> dioxus::desktop::Config {
 
 fn make_window() -> WindowBuilder {
     WindowBuilder::new()
+        .with_title("Trading")
         .with_transparent(false)
         .with_decorations(true)
         .with_resizable(true)
