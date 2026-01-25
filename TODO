@@ -1,0 +1,16 @@
++ Update the layout of the detail view.
+  + Option 2
+    + Make each category label a tab
+    + Display each category's data when the associated tab is selected
+  + Option 3
+    + Place each category's data in a two-column row
+    + Within each category column, place the data in a form layout
++ Update the main table's header alignment
++ Add a line chart to the detail view:
+  + 1-Day
+  + 5-Day
+  + 3-Month
+  + 6-Month
++ Resize the initial window size based on its content
++ Add more data to the detail view.
+  + Per Share ?

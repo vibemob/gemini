@@ -1,8 +1,8 @@
 [application]
-
+name = "gemini"
+default_platform = "desktop"
 
 [web.app]
-
 # HTML title tag content
 title = "trading"
 
@@ -20,3 +20,6 @@ script = []
 # Javascript code file
 # serve: [dev-server] only
 script = []
+
+[build]
+tailwind = true

@@ -11,7 +11,10 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
 
-        overlays = [ rust-overlay.overlays.default];
+        overlays = [
+          rust-overlay.overlays.default
+        ];
+
         pkgs = import nixpkgs { inherit system overlays; };
 
         # Pin the Rust toolchain.
@@ -19,11 +22,23 @@
         # in your project root. If one doesn't exist, it falls back to stable.
         # The function expects the path directly, not in a set.
         rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
-        rustBuildInputs = [
-            pkgs.pkg-config
-            pkgs.openssl
-            pkgs.libiconv
-        ];
+        rustBuildInputs = with pkgs;
+          [
+            pkg-config
+            openssl
+          ] ++ lib.optionals stdenv.isLinux [
+            # GTK and related dependencies for Linux
+            cairo
+            gdk-pixbuf
+            gtk3
+            libsoup_3
+            webkitgtk_4_1
+            xdotool # For window manipulation
+            librsvg # For SVG support
+            libayatana-appindicator # For system tray support
+          ] ++ lib.optionals stdenv.isDarwin [
+            apple-sdk_14
+          ];
       in
       {
         devShells.default = pkgs.mkShell {
@@ -35,10 +50,16 @@
             rust-analyzer
             wasm-bindgen-cli_0_2_99
             dioxus-cli
-
+            tailwindcss_4
           ] ++ rustBuildInputs;
 
           RUST_BACKTRACE = 1;
+
+          # This hook runs when you enter the shell.
+          # It ensures that SDKROOT is set, which is needed by some build scripts on macOS.
+          shellHook = ''
+            export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+          '';
         };
       });
 }
