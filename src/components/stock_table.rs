@@ -513,112 +513,70 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
                             tr {
                                 class: "bg-white border-b border-gray-200",
                                 td { colspan: "9", class: "p-0",
-                                    div { class: "bg-gray-50 mx-12 my-4 p-6 rounded-lg border border-gray-200",
-                                        div { class: "mb-2",
-                                        h4 { class: "font-bold text-gray-700 mb-2", "Overview" }
-                                        table { class: "min-w-full text-sm table-fixed",
-                                            thead {
-                                                tr { class: "text-left text-gray-500 border-b",
-                                                    th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Open" }
-                                                    th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Prev Close" }
-                                                    th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Day Range" }
-                                                    th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "52 Week Range" }
-                                                    th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Beta" }
+                                    div { class: "bg-gray-50 mx-12 my-4 p-6 rounded-lg border border-gray-200 space-y-6",
+                                        // Row 1: Overview and Dividends
+                                        div { class: "flex space-x-6",
+                                            // Overview Section
+                                            div { class: "flex-1",
+                                                h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Overview" }
+                                                div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
+                                                    DetailCell { label: "Open".to_string(), value: format_opt(stock.open.map(|v| format!("{:.2}", v))) }
+                                                    DetailCell { label: "Prev Close".to_string(), value: format_opt(stock.previous_close.map(|v| format!("{:.2}", v))) }
+                                                    DetailCell { label: "Day Range".to_string(), value: format_range(stock.day_low, stock.day_high) }
+                                                    DetailCell { label: "52 Week Range".to_string(), value: format_range(stock.year_low, stock.year_high) }
+                                                    DetailCell { label: "Beta".to_string(), value: format_opt(stock.beta.map(|v| format!("{:.2}", v))) }
                                                 }
                                             }
-                                            tbody {
-                                                tr {
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.open.map(|v| format!("{:.2}", v)))} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.previous_close.map(|v| format!("{:.2}", v)))} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_range(stock.day_low, stock.day_high)} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_range(stock.year_low, stock.year_high)} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.beta.map(|v| format!("{:.2}", v)))} }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    div { class: "mt-4 mb-2",
-                                        h4 { class: "font-bold text-gray-700 mb-2", "Dividends" }
-                                        table { class: "min-w-full text-sm table-fixed",
-                                            thead {
-                                                tr { class: "text-left text-gray-500 border-b",
-                                                    th { class: "w-1/3 pb-1 font-medium uppercase text-xs tracking-wider", "Dividend / Share" }
-                                                    th { class: "w-1/3 pb-1 font-medium uppercase text-xs tracking-wider", "Dividend Yield" }
-                                                    th { class: "w-1/3 pb-1 font-medium uppercase text-xs tracking-wider", "Payout Ratio" }
-                                                }
-                                            }
-                                            tbody {
-                                                tr {
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.dividend_per_share.map(|v| format!("${:.2}", v)))} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.dividend_yield.map(|v| format!("{:.2}%", v)))} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.payout_ratio.map(|v| format!("{:.2}%", v)))} }
+                                            // Dividends Section
+                                            div { class: "flex-1",
+                                                h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Dividends" }
+                                                div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
+                                                    DetailCell { label: "Dividend / Share".to_string(), value: format_opt(stock.dividend_per_share.map(|v| format!("${:.2}", v))) }
+                                                    DetailCell { label: "Dividend Yield".to_string(), value: format_opt(stock.dividend_yield.map(|v| format!("{:.2}%", v))) }
+                                                    DetailCell { label: "Payout Ratio".to_string(), value: format_opt(stock.payout_ratio.map(|v| format!("{:.2}%", v))) }
                                                 }
                                             }
                                         }
-                                    }
-                                    div { class: "mt-4 mb-2",
-                                        h4 { class: "font-bold text-gray-700 mb-2", "Profitability" }
-                                        table { class: "min-w-full text-sm table-fixed",
-                                            thead {
-                                                tr { class: "text-left text-gray-500 border-b",
-                                                    th { class: "w-1/3 pb-1 font-medium uppercase text-xs tracking-wider", "Net Margin TTM" }
-                                                    th { class: "w-1/3 pb-1 font-medium uppercase text-xs tracking-wider", "ROA TTM" }
-                                                    th { class: "w-1/3 pb-1 font-medium uppercase text-xs tracking-wider", "ROE TTM" }
+
+                                        // Row 2: Profitability and Income Statement
+                                        div { class: "flex space-x-6",
+                                            // Profitability Section
+                                            div { class: "flex-1",
+                                                h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Profitability" }
+                                                div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
+                                                    DetailCell { label: "Net Margin TTM".to_string(), value: format_opt(stock.net_margin.map(|v| format!("{:.2}%", v))) }
+                                                    DetailCell { label: "ROA TTM".to_string(), value: format_opt(stock.return_on_assets.map(|v| format!("{:.2}%", v))) }
+                                                    DetailCell { label: "ROE TTM".to_string(), value: format_opt(stock.return_on_equity.map(|v| format!("{:.2}%", v))) }
                                                 }
                                             }
-                                            tbody {
-                                                tr {
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.net_margin.map(|v| format!("{:.2}%", v)))} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.return_on_assets.map(|v| format!("{:.2}%", v)))} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.return_on_equity.map(|v| format!("{:.2}%", v)))} }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    div { class: "mt-4 mb-2",
-                                        h4 { class: "font-bold text-gray-700 mb-2", "Income Statement" }
-                                        table { class: "min-w-full text-sm table-fixed",
-                                            thead {
-                                                tr { class: "text-left text-gray-500 border-b",
-                                                    th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Revenue TTM" }
-                                                    th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Revenue Growth" }
-                                                    th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Gross Profit" }
-                                                    th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Operating Income" }
-                                                    th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Net Income" }
-                                                }
-                                            }
-                                            tbody {
-                                                tr {
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.revenue_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.revenue_growth_ttm.map(|v| format!("{:.2}%", v)))} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.gross_profit_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.operating_income_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.net_income_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
+                                            // Income Statement Section
+                                            div { class: "flex-1",
+                                                h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Income Statement" }
+                                                div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
+                                                    DetailCell { label: "Revenue TTM".to_string(), value: format_opt(stock.revenue_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                    DetailCell { label: "Revenue Growth".to_string(), value: format_opt(stock.revenue_growth_ttm.map(|v| format!("{:.2}%", v))) }
+                                                    DetailCell { label: "Gross Profit".to_string(), value: format_opt(stock.gross_profit_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                    DetailCell { label: "Operating Income".to_string(), value: format_opt(stock.operating_income_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                    DetailCell { label: "Net Income".to_string(), value: format_opt(stock.net_income_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
                                                 }
                                             }
                                         }
-                                    }
-                                    div { class: "mt-4 mb-2",
-                                        h4 { class: "font-bold text-gray-700 mb-2", "Balance Sheet" }
-                                        table { class: "min-w-full text-sm table-fixed",
-                                            thead {
-                                                tr { class: "text-left text-gray-500 border-b",
-                                                    th { class: "w-1/4 pb-1 font-medium uppercase text-xs tracking-wider", "Cash on Hand FQ" }
-                                                    th { class: "w-1/4 pb-1 font-medium uppercase text-xs tracking-wider", "Total Debt FQ" }
-                                                    th { class: "w-1/4 pb-1 font-medium uppercase text-xs tracking-wider", "Total Equity FQ" }
-                                                    th { class: "w-1/4 pb-1 font-medium uppercase text-xs tracking-wider", "Debt/Equity FQ" }
+
+                                        // Row 3: Balance Sheet
+                                        div { class: "flex space-x-6",
+                                            // Balance Sheet Section
+                                            div { class: "flex-1",
+                                                h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Balance Sheet" }
+                                                div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
+                                                    DetailCell { label: "Cash on Hand FQ".to_string(), value: format_opt(stock.cash_on_hand_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                    DetailCell { label: "Total Debt FQ".to_string(), value: format_opt(stock.total_debt_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                    DetailCell { label: "Total Equity FQ".to_string(), value: format_opt(stock.total_equity_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                    DetailCell { label: "Debt/Equity FQ".to_string(), value: format_opt(stock.debt_to_equity_fq.map(|v| format!("{:.2}", v))) }
                                                 }
                                             }
-                                            tbody {
-                                                tr {
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.cash_on_hand_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.total_debt_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.total_equity_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
-                                                    td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.debt_to_equity_fq.map(|v| format!("{:.2}", v)))} }
-                                                }
-                                            }
+                                            // Empty div to take up the other half of the space
+                                            div { class: "flex-1" }
                                         }
-                                    }
                                     }
                                 }
                             }
@@ -626,6 +584,17 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
                     }
                 })
             }
+        }
+    }
+}
+
+/// A small component to display a labeled data point in the detail view.
+#[component]
+fn DetailCell(label: String, value: String) -> Element {
+    rsx! {
+        div { class: "flex flex-col",
+            span { class: "text-xs text-gray-500 uppercase tracking-wider", "{label}" }
+            span { class: "text-sm font-medium text-gray-900", "{value}" }
         }
     }
 }
