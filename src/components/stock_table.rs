@@ -1,62 +1,12 @@
 use dioxus::prelude::*;
 use std::cmp::Ordering;
 
-// TODO: uncomment when the API call is uncommented
-//use futures::future::join_all;
-use serde::Deserialize;
+mod types;
+mod chart;
+mod details;
 
-/// The structure of the data we expect from the FMP API.
-/// We use `serde` to automatically deserialize the JSON response into this struct.
-#[derive(Clone, PartialEq, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct StockQuoteData {
-    // TODO: uncomment serde attributes when API is uncommented
-    symbol: String,
-    name: Option<String>,
-    price: Option<f64>,
-    //#[serde(rename = "changePercentage")]
-    change_pct: Option<f64>,
-    volume: Option<u64>,
-    //#[serde(rename = "marketCap")]
-    market_cap: Option<f64>,
-    //#[serde(rename = "priceToEarningsRatio")]
-    pe: Option<f64>,
-    //#[serde(rename = "ownersEarningsPerShare")]
-    eps: Option<f64>,
-    open: Option<f64>,
-    //#[serde(rename = "previousClose")]
-    previous_close: Option<f64>,
-    //#[serde(rename = "dayLow")]
-    day_low: Option<f64>,
-    //#[serde(rename = "dayHigh")]
-    day_high: Option<f64>,
-    //#[serde(rename = "yearLow")]
-    year_low: Option<f64>,
-    //#[serde(rename = "yearHigh")]
-    year_high: Option<f64>,
-    beta: Option<f64>,
-    // TODO: find out API name
-    dividend_per_share: Option<f64>,
-    dividend_yield: Option<f64>,
-    payout_ratio: Option<f64>,
-    net_margin: Option<f64>,
-    return_on_assets: Option<f64>,
-    return_on_equity: Option<f64>,
-    revenue_ttm: Option<f64>,
-    revenue_growth_ttm: Option<f64>,
-    gross_profit_ttm: Option<f64>,
-    operating_income_ttm: Option<f64>,
-    net_income_ttm: Option<f64>,
-    cash_on_hand_fq: Option<f64>,
-    total_debt_fq: Option<f64>,
-    total_equity_fq: Option<f64>,
-    debt_to_equity_fq: Option<f64>,
-    free_cash_flow: Option<f64>,
-}
-
-// A list of stock symbols we want to fetch data for.
-// TODO: uncomment when the API call is uncommented
-//const SYMBOLS: &[&str] = &["AAPL", "MSFT", "GOOGL"];
+use types::{StockQuoteData, SortDirection, format_opt};
+use details::StockDetailTabs;
 
 /// A component that renders a table for stock data.
 #[component]
@@ -313,37 +263,6 @@ pub fn StockTable() -> Element {
     }
 }
 
-/// Helper to format optional numbers, returning "N/A" if None.
-fn format_opt<T: std::fmt::Display>(val: Option<T>) -> String {
-    val.map(|v| v.to_string())
-        .unwrap_or_else(|| "N/A".to_string())
-}
-
-/// Helper to format a price range.
-fn format_range(low: Option<f64>, high: Option<f64>) -> String {
-    match (low, high) {
-        (Some(l), Some(h)) => format!("{:.2} - {:.2}", l, h),
-        _ => "N/A".to_string(),
-    }
-}
-
-/// Enum to represent the direction of sorting.
-#[derive(Clone, Copy, PartialEq, Debug)]
-enum SortDirection {
-    Asc,
-    Desc,
-}
-
-impl SortDirection {
-    /// Reverses the sort direction.
-    fn reverse(&self) -> Self {
-        match self {
-            Self::Asc => Self::Desc,
-            Self::Desc => Self::Asc,
-        }
-    }
-}
-
 /// A sub-component to render the actual table structure once data is available.
 #[component]
 fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
@@ -482,7 +401,7 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
                     let symbol = stock.symbol.clone();
                     let is_expanded = expanded_symbol.read().as_ref() == Some(&symbol);
                     rsx! {
-                        tr { class: "hover:bg-gray-50 border-b border-gray-200",
+                        tr { id: stock.symbol.clone(), class: "hover:bg-gray-50 border-b border-gray-200",
                             td {
                                 class: "px-3 py-4 text-sm text-blue-600 font-medium text-left cursor-pointer hover:underline",
                                 onclick: move |_| {
@@ -523,176 +442,6 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
                         }
                     }
                 })
-            }
-        }
-    }
-}
-
-#[component]
-fn StockDetailTabs(stock: StockQuoteData) -> Element {
-    let mut active_tab = use_signal(|| "Overview".to_string());
-
-    rsx! {
-        div {
-            // Tab navigation
-            div {
-                class: "flex border-b border-gray-300",
-                for tab_name in ["Overview", "Dividends", "Profitability", "Income Statement", "Balance Sheet"].iter() {
-                    button {
-                        class: "px-4 py-2 -mb-px font-semibold rounded-t-lg text-black",
-                        class: if *active_tab.read() == *tab_name {
-                            "bg-[#e6f7ff] border-l border-t border-r border-gray-300"
-                        } else {
-                            ""
-                        },
-                        onclick: move |_| {
-                            active_tab.set(tab_name.to_string());
-                        },
-                        "{tab_name}"
-                    }
-                }
-            }
-
-            // Tab content
-            {
-                match active_tab.read().as_str() {
-                    "Overview" => rsx!{ OverviewTab { stock: stock.clone() } },
-                    "Dividends" => rsx!{ DividendsTab { stock: stock.clone() } },
-                    "Profitability" => rsx!{ ProfitabilityTab { stock: stock.clone() } },
-                    "Income Statement" => rsx!{ IncomeStatementTab { stock: stock.clone() } },
-                    "Balance Sheet" => rsx!{ BalanceSheetTab { stock: stock.clone() } },
-                    _ => rsx!{ div { "Unknown tab" } }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-fn OverviewTab(stock: StockQuoteData) -> Element {
-    rsx! {
-        div { class: "mt-4 mb-2",
-            table { class: "min-w-full text-sm table-fixed",
-                thead {
-                    tr { class: "text-left text-gray-500 border-b",
-                        th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Open" }
-                        th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Prev Close" }
-                        th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Day Range" }
-                        th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "52 Week Range" }
-                        th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Beta" }
-                    }
-                }
-                tbody {
-                    tr {
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.open.map(|v| format!("{:.2}", v)))} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.previous_close.map(|v| format!("{:.2}", v)))} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_range(stock.day_low, stock.day_high)} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_range(stock.year_low, stock.year_high)} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.beta.map(|v| format!("{:.2}", v)))} }
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-fn DividendsTab(stock: StockQuoteData) -> Element {
-    rsx! {
-        div { class: "mt-4 mb-2",
-            table { class: "min-w-full text-sm table-fixed",
-                thead {
-                    tr { class: "text-left text-gray-500 border-b",
-                        th { class: "w-1/3 pb-1 font-medium uppercase text-xs tracking-wider", "Dividend / Share" }
-                        th { class: "w-1/3 pb-1 font-medium uppercase text-xs tracking-wider", "Dividend Yield" }
-                        th { class: "w-1/3 pb-1 font-medium uppercase text-xs tracking-wider", "Payout Ratio" }
-                    }
-                }
-                tbody {
-                    tr {
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.dividend_per_share.map(|v| format!("${:.2}", v)))} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.dividend_yield.map(|v| format!("{:.2}%", v)))} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.payout_ratio.map(|v| format!("{:.2}%", v)))} }
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-fn ProfitabilityTab(stock: StockQuoteData) -> Element {
-    rsx! {
-        div { class: "mt-4 mb-2",
-            table { class: "min-w-full text-sm table-fixed",
-                thead {
-                    tr { class: "text-left text-gray-500 border-b",
-                        th { class: "w-1/3 pb-1 font-medium uppercase text-xs tracking-wider", "Net Margin TTM" }
-                        th { class: "w-1/3 pb-1 font-medium uppercase text-xs tracking-wider", "ROA TTM" }
-                        th { class: "w-1/3 pb-1 font-medium uppercase text-xs tracking-wider", "ROE TTM" }
-                    }
-                }
-                tbody {
-                    tr {
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.net_margin.map(|v| format!("{:.2}%", v)))} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.return_on_assets.map(|v| format!("{:.2}%", v)))} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.return_on_equity.map(|v| format!("{:.2}%", v)))} }
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-fn IncomeStatementTab(stock: StockQuoteData) -> Element {
-    rsx! {
-        div { class: "mt-4 mb-2",
-            table { class: "min-w-full text-sm table-fixed",
-                thead {
-                    tr { class: "text-left text-gray-500 border-b",
-                        th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Revenue TTM" }
-                        th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Revenue Growth" }
-                        th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Gross Profit" }
-                        th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Operating Income" }
-                        th { class: "w-1/5 pb-1 font-medium uppercase text-xs tracking-wider", "Net Income" }
-                    }
-                }
-                tbody {
-                    tr {
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.revenue_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.revenue_growth_ttm.map(|v| format!("{:.2}%", v)))} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.gross_profit_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.operating_income_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.net_income_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-fn BalanceSheetTab(stock: StockQuoteData) -> Element {
-    rsx! {
-        div { class: "mt-4 mb-2",
-            table { class: "min-w-full text-sm table-fixed",
-                thead {
-                    tr { class: "text-left text-gray-500 border-b",
-                        th { class: "w-1/4 pb-1 font-medium uppercase text-xs tracking-wider", "Cash on Hand FQ" }
-                        th { class: "w-1/4 pb-1 font-medium uppercase text-xs tracking-wider", "Total Debt FQ" }
-                        th { class: "w-1/4 pb-1 font-medium uppercase text-xs tracking-wider", "Total Equity FQ" }
-                        th { class: "w-1/4 pb-1 font-medium uppercase text-xs tracking-wider", "Debt/Equity FQ" }
-                    }
-                }
-                tbody {
-                    tr {
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.cash_on_hand_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.total_debt_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.total_equity_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0)))} }
-                        td { class: "pt-1 font-medium text-gray-900", {format_opt(stock.debt_to_equity_fq.map(|v| format!("{:.2}", v)))} }
-                    }
-                }
             }
         }
     }
