@@ -8,8 +8,9 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wasm-bindgen = "=0.2.99"
-dioxus = { version = "0.6.0", features = ["router", "fullstack"] }
+wasm-bindgen = "^0.2.105"
+dioxus = { version = "0.7.3", features = ["router", "fullstack"] }
+dioxus-liveview = { version = "0.7.0-rc.4" }
 serde = { version = "1.0", features = ["derive"] }
 futures = "0.3"
 reqwest = { version = "0.12", features = ["json"] }

@@ -58,7 +58,8 @@
           # This hook runs when you enter the shell.
           # It ensures that SDKROOT is set, which is needed by some build scripts on macOS.
           shellHook = ''
-            export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+            ${pkgs.lib.optionalString pkgs.stdenv.isLinux "export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath rustBuildInputs}:$LD_LIBRARY_PATH"}
+            ${pkgs.lib.optionalString pkgs.stdenv.isDarwin "export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)"}
           '';
         };
       });

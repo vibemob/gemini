@@ -1,6 +1,5 @@
 // The dioxus prelude contains a ton of common items used in dioxus apps. It's a good idea to import wherever you
 // need dioxus
-use dioxus::desktop::{LogicalSize, WindowBuilder};
 use dioxus::logger::tracing::Level;
 use dioxus::prelude::*;
 
@@ -31,7 +30,6 @@ enum Route {
 fn main() {
     dioxus::logger::init(Level::INFO).expect("logger failed to init");
     dioxus::LaunchBuilder::new()
-        .with_cfg(make_config())
         .launch(App);
 }
 
@@ -45,6 +43,7 @@ fn App() -> Element {
     rsx! {
         // In addition to element and text (which we will see later), rsx can contain other components. In this case,
         // we are using the `document::Link` component to add a link to our favicon and main CSS file into the head of our app.
+        document::Title { "Trading" }
         document::Stylesheet {
             // Urls are relative to your Cargo.toml file
             href: asset!("/assets/tailwind.css")
@@ -53,19 +52,4 @@ fn App() -> Element {
         // the layouts and components for the active route.
         Router::<Route> {}
     }
-}
-
-fn make_config() -> dioxus::desktop::Config {
-    dioxus::desktop::Config::default().with_window(make_window())
-}
-
-fn make_window() -> WindowBuilder {
-    WindowBuilder::new()
-        .with_title("Trading")
-        .with_transparent(false)
-        .with_decorations(true)
-        .with_resizable(true)
-        .with_always_on_top(false)
-        .with_focused(true)
-        .with_inner_size(LogicalSize::new(1280.0, 800.0))
 }
