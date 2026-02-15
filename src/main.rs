@@ -21,15 +21,27 @@ enum Route {
     // The layout attribute defines a wrapper for all routes under the layout. Layouts are great for wrapping
     // many routes with a common UI like a navbar.
     #[layout(Navbar)]
-        // The route attribute defines the URL pattern that a specific route matches. If that pattern matches the URL,
-        // the component for that route will be rendered. The component name that is rendered defaults to the variant name.
+        // The route attribute defines the URL pattern that a specific route matches. If that pattern matches,
+        // the components for that route will be rendered. The component name that is rendered defaults to the variant name.
         #[route("/")]
         Home {},
 }
 
 fn main() {
     dioxus::logger::init(Level::INFO).expect("logger failed to init");
+
+    let window = dioxus_desktop::WindowBuilder::new()
+        .with_title("Trading")
+        .with_inner_size(dioxus_desktop::LogicalSize::new(1280.0, 800.0))
+        .with_resizable(true)
+        .with_decorations(true)
+        .with_transparent(false)
+        .with_always_on_top(false);
+
+    let config = dioxus_desktop::Config::default().with_window(window);
+
     dioxus::LaunchBuilder::new()
+        .with_cfg(config)
         .launch(App);
 }
 
