@@ -1,6 +1,5 @@
 // The dioxus prelude contains a ton of common items used in dioxus apps. It's a good idea to import wherever you
 // need dioxus
-use dioxus::desktop::{LogicalSize, WindowBuilder};
 use dioxus::logger::tracing::Level;
 use dioxus::prelude::*;
 
@@ -55,17 +54,17 @@ fn App() -> Element {
     }
 }
 
-fn make_config() -> dioxus::desktop::Config {
-    dioxus::desktop::Config::default().with_window(make_window())
+fn make_config() -> dioxus_desktop::Config {
+    dioxus_desktop::Config::default().with_window(make_window())
 }
 
-fn make_window() -> WindowBuilder {
-    WindowBuilder::new()
+fn make_window() -> dioxus_desktop::WindowBuilder {
+    dioxus_desktop::WindowBuilder::new()
         .with_title("Trading")
         .with_transparent(false)
         .with_decorations(true)
         .with_resizable(true)
         .with_always_on_top(false)
         .with_focused(true)
-        .with_inner_size(LogicalSize::new(1280.0, 800.0))
+        .with_inner_size(dioxus_desktop::LogicalSize::new(1280.0, 800.0))
 }

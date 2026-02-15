@@ -8,16 +8,14 @@ title = "trading"
 
 # include `assets` in web platform
 [web.resource]
-
-# Additional CSS style files
+# Style tag for additional css style files
 style = []
 
-# Additional JavaScript files
+# Script tag for additional JavaScript files
 script = []
 
 [web.resource.dev]
-
-# Javascript code file
+# Script tag for JavaScript code file
 # serve: [dev-server] only
 script = []
 
