@@ -305,7 +305,16 @@ fn draw_chart(
                 // Get the pixel coordinates of the hovered point
                 let (x_px, y_px) = chart.backend_coord(&point_coord);
                 {
+                    let dt = Utc.timestamp_millis_opt(p.timestamp).unwrap();
+                    let date_str = dt.format("%m/%d/%y").to_string();
+                    let date_time_str = if matches!(time_range, ChartTimeRange::OneDay) {
+                        format!("{} {}", date_str, dt.format("%-I:%M %p"))
+                    } else {
+                        date_str
+                    };
+
                     let tooltip_lines = vec![
+                        date_time_str,
                         format!("Open: ${:.2}", p.open),
                         format!("Close: ${:.2}", p.close),
                         format!("High: ${:.2}", p.high),
