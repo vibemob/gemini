@@ -9,6 +9,10 @@ use views::{Home, Navbar};
 mod components;
 /// Define a views module that contains the UI for all Layouts and Routes for our app.
 mod views;
+/// Define a data_models module that contains the data structures for our app.
+mod data_models;
+/// Define a services module that contains business logic and data fetching.
+mod services;
 
 /// The Route enum is used to define the structure of internal routes in our app. All route enums need to derive
 /// the [`Routable`] trait, which provides the necessary methods for the router to work.

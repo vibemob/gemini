@@ -8,30 +8,14 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dioxus = { version = "0.7.3", features = ["router", "fullstack"] }
+dioxus = { version = "0.7.3", features = ["router"] }
 serde = { version = "1.0", features = ["derive"] }
 futures = "0.3"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", features = ["json"] } # No wasm-bindgen for desktop-only
 serde_json = "1.0.148"
 dioxus-desktop = "0.7.3"
-
-[features]
-default = ["desktop"]
-# The feature that are only required for the web = ["dioxus/web"] build target should be optional and only enabled in the web = ["dioxus/web"] feature
-web = ["dioxus/web"]
-# The feature that are only required for the desktop = ["dioxus/desktop"] build target should be optional and only enabled in the desktop = ["dioxus/desktop"] feature
-desktop = ["dioxus/desktop"]
-# The feature that are only required for the mobile = ["dioxus/mobile"] build target should be optional and only enabled in the mobile = ["dioxus/mobile"] feature
-mobile = ["dioxus/mobile"]
-
-[profile]
-
-[profile.wasm-dev]
-inherits = "dev"
-opt-level = 1
-
-[profile.server-dev]
-inherits = "dev"
-
-[profile.android-dev]
-inherits = "dev"
+chrono = { version = "0.4", features = ["serde"] }
+plotters = "0.3"
+image = "0.25" # For encoding plotters output to PNG
+base64 = "0.22" # For encoding image data to Base64
+rand = "0.8.5"

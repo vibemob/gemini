@@ -1,15 +1,8 @@
-+ Update the layout of the detail view.
-  + Add graph(s) to the view potentially for category.
-    + Add a line chart potentially to the overview category:
-        + 1-Day
-        + 5-Day
-        + 3-Month
+* Update the layout of the detail view.
+  * Add graph(s) to the view potentially for category.
+        * 3-Month
         + 6-Month
-    + Have a chart link in the overview heading that when clicked will
-      cause the detail view to change to display just the overview category
-      and a chart.
 + Update the main table's header alignment
-
 + Resize the initial window size based on its content
 + Add more data to the detail view.
   + Per Share ?

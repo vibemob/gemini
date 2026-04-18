@@ -1,62 +1,7 @@
+use crate::components::{StockLineChart, ChartTimeRange};
+use crate::data_models::chart_data::StockQuoteData;
 use dioxus::prelude::*;
 use std::cmp::Ordering;
-
-// TODO: uncomment when the API call is uncommented
-//use futures::future::join_all;
-use serde::Deserialize;
-
-/// The structure of the data we expect from the FMP API.
-/// We use `serde` to automatically deserialize the JSON response into this struct.
-#[derive(Clone, PartialEq, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct StockQuoteData {
-    // TODO: uncomment serde attributes when API is uncommented
-    symbol: String,
-    name: Option<String>,
-    price: Option<f64>,
-    //#[serde(rename = "changePercentage")]
-    change_pct: Option<f64>,
-    volume: Option<u64>,
-    //#[serde(rename = "marketCap")]
-    market_cap: Option<f64>,
-    //#[serde(rename = "priceToEarningsRatio")]
-    pe: Option<f64>,
-    //#[serde(rename = "ownersEarningsPerShare")]
-    eps: Option<f64>,
-    open: Option<f64>,
-    //#[serde(rename = "previousClose")]
-    previous_close: Option<f64>,
-    //#[serde(rename = "dayLow")]
-    day_low: Option<f64>,
-    //#[serde(rename = "dayHigh")]
-    day_high: Option<f64>,
-    //#[serde(rename = "yearLow")]
-    year_low: Option<f64>,
-    //#[serde(rename = "yearHigh")]
-    year_high: Option<f64>,
-    beta: Option<f64>,
-    // TODO: find out API name
-    dividend_per_share: Option<f64>,
-    dividend_yield: Option<f64>,
-    payout_ratio: Option<f64>,
-    net_margin: Option<f64>,
-    return_on_assets: Option<f64>,
-    return_on_equity: Option<f64>,
-    revenue_ttm: Option<f64>,
-    revenue_growth_ttm: Option<f64>,
-    gross_profit_ttm: Option<f64>,
-    operating_income_ttm: Option<f64>,
-    net_income_ttm: Option<f64>,
-    cash_on_hand_fq: Option<f64>,
-    total_debt_fq: Option<f64>,
-    total_equity_fq: Option<f64>,
-    debt_to_equity_fq: Option<f64>,
-    free_cash_flow: Option<f64>,
-}
-
-// A list of stock symbols we want to fetch data for.
-// TODO: uncomment when the API call is uncommented
-//const SYMBOLS: &[&str] = &["AAPL", "MSFT", "GOOGL"];
 
 /// A component that renders a table for stock data.
 #[component]
@@ -351,6 +296,10 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
     let mut sort_by = use_signal(|| None::<(usize, SortDirection)>);
     // Signal to hold the currently expanded row symbol
     let mut expanded_symbol = use_signal(|| None::<String>);
+    // Signal to hold which stock has its chart view expanded
+    let mut chart_expanded_symbol = use_signal(|| None::<String>);
+    // Signal to hold the time range for the chart (1D or 5D)
+    let mut chart_time_range = use_signal(|| ChartTimeRange::OneDay);
 
     // Memoize the sorted stocks. This will re-compute only when `sort_by` changes.
     let sorted_stocks = use_memo(move || {
@@ -479,14 +428,19 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
                 sorted_stocks.read().iter().map(|stock| {
                     let symbol = stock.symbol.clone();
                     let is_expanded = expanded_symbol.read().as_ref() == Some(&symbol);
+                    let is_chart_expanded = chart_expanded_symbol.read().as_ref() == Some(&symbol);
+
                     rsx! {
-                        tr { class: "hover:bg-gray-50 border-b border-gray-200",
+                        tr {
+                            class: "hover:bg-gray-50 border-b border-gray-200",
+                            key: "{symbol}-row",
                             td {
                                 class: "px-3 py-4 text-sm text-blue-600 font-medium text-left cursor-pointer hover:underline",
                                 onclick: move |_| {
-                                    let current = expanded_symbol.read().clone();
-                                    if current == Some(symbol.clone()) {
+                                    let current_expanded = expanded_symbol.read().clone();
+                                    if current_expanded == Some(symbol.clone()) {
                                         *expanded_symbol.write() = None;
+                                        *chart_expanded_symbol.write() = None; // Also close chart view
                                     } else {
                                         *expanded_symbol.write() = Some(symbol.clone());
                                     }
@@ -509,73 +463,134 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
                             td { class: "px-3 py-4 text-sm text-black text-right", {format_opt(stock.eps.map(|eps| format!("{:.2}", eps)))} }
                             td { class: "px-3 py-4 text-sm text-black text-right", {format_opt(stock.free_cash_flow.map(|fcf| format!("${:.2}B", fcf / 1_000_000_000.0)))} }
                         }
+
                         if is_expanded {
                             tr {
                                 class: "bg-white border-b border-gray-200",
-                                td { colspan: "9", class: "p-0",
-                                    div { class: "bg-gray-50 mx-12 my-4 p-6 rounded-lg border border-gray-200 space-y-6",
-                                        // Row 1: Overview and Dividends
-                                        div { class: "flex space-x-6",
-                                            // Overview Section
-                                            div { class: "flex-1",
-                                                h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Overview" }
-                                                div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
-                                                    DetailCell { label: "Open".to_string(), value: format_opt(stock.open.map(|v| format!("{:.2}", v))) }
-                                                    DetailCell { label: "Prev Close".to_string(), value: format_opt(stock.previous_close.map(|v| format!("{:.2}", v))) }
-                                                    DetailCell { label: "Day Range".to_string(), value: format_range(stock.day_low, stock.day_high) }
-                                                    DetailCell { label: "52 Week Range".to_string(), value: format_range(stock.year_low, stock.year_high) }
-                                                    DetailCell { label: "Beta".to_string(), value: format_opt(stock.beta.map(|v| format!("{:.2}", v))) }
+                                key: "{symbol}-details",
+                                td {
+                                    colspan: "9",
+                                    class: "p-0",
+                                    if is_chart_expanded {
+                                        // Chart Expanded View
+                                        div { class: "bg-gray-50 mx-12 my-4 p-6 rounded-lg border border-gray-200 space-y-6",
+                                            div { class: "flex flex-col",
+                                                // Overview Section (Full Width)
+                                                div { class: "w-full",
+                                                    h4 { class: "flex justify-between items-center font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded",
+                                                        "Overview"
+                                                        a {
+                                                            class: "text-sm font-normal text-blue-600 hover:underline cursor-pointer",
+                                                            onclick: move |_| *chart_expanded_symbol.write() = None,
+                                                            "X"
+                                                        }
+                                                    }
+                                                    div { class: "grid grid-cols-5 gap-y-3 gap-x-4", // Adjusted to 5 columns
+                                                        DetailCell { label: "Open".to_string(), value: format_opt(stock.open.map(|v| format!("{:.2}", v))) }
+                                                        DetailCell { label: "Prev Close".to_string(), value: format_opt(stock.previous_close.map(|v| format!("{:.2}", v))) }
+                                                        DetailCell { label: "Day Range".to_string(), value: format_range(stock.day_low, stock.day_high) }
+                                                        DetailCell { label: "52 Week Range".to_string(), value: format_range(stock.year_low, stock.year_high) }
+                                                        DetailCell { label: "Beta".to_string(), value: format_opt(stock.beta.map(|v| format!("{:.2}", v))) }
+                                                    }
                                                 }
-                                            }
-                                            // Dividends Section
-                                            div { class: "flex-1",
-                                                h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Dividends" }
-                                                div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
-                                                    DetailCell { label: "Dividend / Share".to_string(), value: format_opt(stock.dividend_per_share.map(|v| format!("${:.2}", v))) }
-                                                    DetailCell { label: "Dividend Yield".to_string(), value: format_opt(stock.dividend_yield.map(|v| format!("{:.2}%", v))) }
-                                                    DetailCell { label: "Payout Ratio".to_string(), value: format_opt(stock.payout_ratio.map(|v| format!("{:.2}%", v))) }
-                                                }
-                                            }
-                                        }
-
-                                        // Row 2: Profitability and Income Statement
-                                        div { class: "flex space-x-6",
-                                            // Profitability Section
-                                            div { class: "flex-1",
-                                                h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Profitability" }
-                                                div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
-                                                    DetailCell { label: "Net Margin TTM".to_string(), value: format_opt(stock.net_margin.map(|v| format!("{:.2}%", v))) }
-                                                    DetailCell { label: "ROA TTM".to_string(), value: format_opt(stock.return_on_assets.map(|v| format!("{:.2}%", v))) }
-                                                    DetailCell { label: "ROE TTM".to_string(), value: format_opt(stock.return_on_equity.map(|v| format!("{:.2}%", v))) }
-                                                }
-                                            }
-                                            // Income Statement Section
-                                            div { class: "flex-1",
-                                                h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Income Statement" }
-                                                div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
-                                                    DetailCell { label: "Revenue TTM".to_string(), value: format_opt(stock.revenue_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
-                                                    DetailCell { label: "Revenue Growth".to_string(), value: format_opt(stock.revenue_growth_ttm.map(|v| format!("{:.2}%", v))) }
-                                                    DetailCell { label: "Gross Profit".to_string(), value: format_opt(stock.gross_profit_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
-                                                    DetailCell { label: "Operating Income".to_string(), value: format_opt(stock.operating_income_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
-                                                    DetailCell { label: "Net Income".to_string(), value: format_opt(stock.net_income_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                // Chart Content Section
+                                                div {
+                                                    class: "chart-content",
+                                                    StockLineChart { symbol: stock.clone(), time_range: *chart_time_range.read() }
                                                 }
                                             }
                                         }
+                                    } else {
+                                        // Standard Expanded View
+                                        div { class: "bg-gray-50 mx-12 my-4 p-6 rounded-lg border border-gray-200 space-y-6",
+                                            // Row 1: Overview and Dividends
+                                            div { class: "flex space-x-6",
+                                                // Overview Section
+                                                div { class: "flex-1",
+                                                    h4 { class: "flex justify-between items-center font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded",
+                                                        "Overview"
+                                                        a {
+                                                            class: "text-sm font-normal text-blue-600 hover:underline cursor-pointer mr-2",
+                                                            onclick: {
+                                                                let symbol_clone = stock.symbol.clone();
+                                                                move |_| {
+                                                                    *chart_expanded_symbol.write() = Some(symbol_clone.clone());
+                                                                    *chart_time_range.write() = ChartTimeRange::OneDay;
+                                                                }
+                                                            },
+                                                            "1D"
+                                                        }
+                                                        a {
+                                                            class: "text-sm font-normal text-blue-600 hover:underline cursor-pointer",
+                                                            onclick: {
+                                                                let symbol_clone = stock.symbol.clone();
+                                                                move |_| {
+                                                                    *chart_expanded_symbol.write() = Some(symbol_clone.clone());
+                                                                    *chart_time_range.write() = ChartTimeRange::FiveDay;
+                                                                }
+                                                            },
+                                                            "5D"
+                                                        }
+                                                    }
+                                                    div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
+                                                        DetailCell { label: "Open".to_string(), value: format_opt(stock.open.map(|v| format!("{:.2}", v))) }
+                                                        DetailCell { label: "Prev Close".to_string(), value: format_opt(stock.previous_close.map(|v| format!("{:.2}", v))) }
+                                                        DetailCell { label: "Day Range".to_string(), value: format_range(stock.day_low, stock.day_high) }
+                                                        DetailCell { label: "52 Week Range".to_string(), value: format_range(stock.year_low, stock.year_high) }
+                                                        DetailCell { label: "Beta".to_string(), value: format_opt(stock.beta.map(|v| format!("{:.2}", v))) }
+                                                    }
 
-                                        // Row 3: Balance Sheet
-                                        div { class: "flex space-x-6",
-                                            // Balance Sheet Section
-                                            div { class: "flex-1",
-                                                h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Balance Sheet" }
-                                                div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
-                                                    DetailCell { label: "Cash on Hand FQ".to_string(), value: format_opt(stock.cash_on_hand_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
-                                                    DetailCell { label: "Total Debt FQ".to_string(), value: format_opt(stock.total_debt_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
-                                                    DetailCell { label: "Total Equity FQ".to_string(), value: format_opt(stock.total_equity_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
-                                                    DetailCell { label: "Debt/Equity FQ".to_string(), value: format_opt(stock.debt_to_equity_fq.map(|v| format!("{:.2}", v))) }
+                                                }
+                                                // Dividends Section
+                                                div { class: "flex-1",
+                                                    h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Dividends" }
+                                                    div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
+                                                        DetailCell { label: "Dividend / Share".to_string(), value: format_opt(stock.dividend_per_share.map(|v| format!("${:.2}", v))) }
+                                                        DetailCell { label: "Dividend Yield".to_string(), value: format_opt(stock.dividend_yield.map(|v| format!("{:.2}%", v))) }
+                                                        DetailCell { label: "Payout Ratio".to_string(), value: format_opt(stock.payout_ratio.map(|v| format!("{:.2}%", v))) }
+                                                    }
                                                 }
                                             }
-                                            // Empty div to take up the other half of the space
-                                            div { class: "flex-1" }
+
+                                            // Row 2: Profitability and Income Statement
+                                            div { class: "flex space-x-6",
+                                                // Profitability Section
+                                                div { class: "flex-1",
+                                                    h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Profitability" }
+                                                    div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
+                                                        DetailCell { label: "Net Margin TTM".to_string(), value: format_opt(stock.net_margin.map(|v| format!("{:.2}%", v))) }
+                                                        DetailCell { label: "ROA TTM".to_string(), value: format_opt(stock.return_on_assets.map(|v| format!("{:.2}%", v))) }
+                                                        DetailCell { label: "ROE TTM".to_string(), value: format_opt(stock.return_on_equity.map(|v| format!("{:.2}%", v))) }
+                                                    }
+                                                }
+                                                // Income Statement Section
+                                                div { class: "flex-1",
+                                                    h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Income Statement" }
+                                                    div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
+                                                        DetailCell { label: "Revenue TTM".to_string(), value: format_opt(stock.revenue_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                        DetailCell { label: "Revenue Growth".to_string(), value: format_opt(stock.revenue_growth_ttm.map(|v| format!("{:.2}%", v))) }
+                                                        DetailCell { label: "Gross Profit".to_string(), value: format_opt(stock.gross_profit_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                        DetailCell { label: "Operating Income".to_string(), value: format_opt(stock.operating_income_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                        DetailCell { label: "Net Income".to_string(), value: format_opt(stock.net_income_ttm.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                    }
+                                                }
+                                            }
+
+                                            // Row 3: Balance Sheet
+                                            div { class: "flex space-x-6",
+                                                // Balance Sheet Section
+                                                div { class: "flex-1",
+                                                    h4 { class: "font-bold text-gray-700 mb-3 bg-[#e6f7ff] p-2 rounded", "Balance Sheet" }
+                                                    div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
+                                                        DetailCell { label: "Cash on Hand FQ".to_string(), value: format_opt(stock.cash_on_hand_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                        DetailCell { label: "Total Debt FQ".to_string(), value: format_opt(stock.total_debt_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                        DetailCell { label: "Total Equity FQ".to_string(), value: format_opt(stock.total_equity_fq.map(|v| format!("${:.2}B", v / 1_000_000_000.0))) }
+                                                        DetailCell { label: "Debt/Equity FQ".to_string(), value: format_opt(stock.debt_to_equity_fq.map(|v| format!("{:.2}", v))) }
+                                                    }
+                                                }
+                                                // Empty div to take up the other half of the space
+                                                div { class: "flex-1" }
+                                            }
                                         }
                                     }
                                 }
