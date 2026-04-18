@@ -1,5 +1,5 @@
 use crate::data_models::chart_data::{StockChartData, StockQuoteData};
-use crate::services::market_data::{fetch_intraday_data_for_chart, fetch_5day_data_for_chart, MARKET_CLOSE_H, MARKET_CLOSE_M, MARKET_OPEN_H, MARKET_OPEN_M};
+use crate::services::market_data::{fetch_intraday_data_for_chart, fetch_5day_data_for_chart, fetch_1month_data_for_chart, fetch_3month_data_for_chart, MARKET_CLOSE_H, MARKET_CLOSE_M, MARKET_OPEN_H, MARKET_OPEN_M};
 use chrono::{NaiveTime, TimeZone, Utc};
 use dioxus::prelude::*;
 
@@ -12,6 +12,8 @@ use base64::{engine::general_purpose::STANDARD, Engine as _};
 pub enum ChartTimeRange {
     OneDay,
     FiveDay,
+    OneMonth,
+    ThreeMonth,
 }
 
 // Props for our chart component
@@ -50,6 +52,8 @@ pub fn StockLineChart(props: StockLineChartProps) -> Element {
             let fetched_data = match time_range {
                 ChartTimeRange::OneDay => fetch_intraday_data_for_chart(&symbol).await,
                 ChartTimeRange::FiveDay => fetch_5day_data_for_chart(&symbol).await,
+                ChartTimeRange::OneMonth => fetch_1month_data_for_chart(&symbol).await,
+                ChartTimeRange::ThreeMonth => fetch_3month_data_for_chart(&symbol).await,
             };
             chart_data.set(fetched_data);
         });
@@ -149,6 +153,8 @@ fn draw_chart(
     let chart_title = match time_range {
         ChartTimeRange::OneDay => "1-Day",
         ChartTimeRange::FiveDay => "5-Day",
+        ChartTimeRange::OneMonth => "1-Month",
+        ChartTimeRange::ThreeMonth => "3-Month",
     };
 
     // Draw chart in a separate scope to drop root_area before using PNG
@@ -168,6 +174,26 @@ fn draw_chart(
             ChartTimeRange::FiveDay => {
                 let today_date_naive = Utc::now().date_naive();
                 let start_date = today_date_naive.pred_opt().and_then(|d| d.checked_sub_days(chrono::Days::new(4)));
+                let start_date = start_date.unwrap_or(today_date_naive);
+                let start_time_local = NaiveTime::from_hms_opt(MARKET_OPEN_H, MARKET_OPEN_M, 0).unwrap();
+                let end_time_local = NaiveTime::from_hms_opt(MARKET_CLOSE_H, MARKET_CLOSE_M, 0).unwrap();
+                let start = Utc.from_utc_datetime(&start_date.and_time(start_time_local));
+                let end = Utc.from_utc_datetime(&today_date_naive.and_time(end_time_local));
+                (start, end)
+            }
+            ChartTimeRange::OneMonth => {
+                let today_date_naive = Utc::now().date_naive();
+                let start_date = today_date_naive.pred_opt().and_then(|d| d.checked_sub_days(chrono::Days::new(29)));
+                let start_date = start_date.unwrap_or(today_date_naive);
+                let start_time_local = NaiveTime::from_hms_opt(MARKET_OPEN_H, MARKET_OPEN_M, 0).unwrap();
+                let end_time_local = NaiveTime::from_hms_opt(MARKET_CLOSE_H, MARKET_CLOSE_M, 0).unwrap();
+                let start = Utc.from_utc_datetime(&start_date.and_time(start_time_local));
+                let end = Utc.from_utc_datetime(&today_date_naive.and_time(end_time_local));
+                (start, end)
+            }
+            ChartTimeRange::ThreeMonth => {
+                let today_date_naive = Utc::now().date_naive();
+                let start_date = today_date_naive.pred_opt().and_then(|d| d.checked_sub_days(chrono::Days::new(89)));
                 let start_date = start_date.unwrap_or(today_date_naive);
                 let start_time_local = NaiveTime::from_hms_opt(MARKET_OPEN_H, MARKET_OPEN_M, 0).unwrap();
                 let end_time_local = NaiveTime::from_hms_opt(MARKET_CLOSE_H, MARKET_CLOSE_M, 0).unwrap();
@@ -212,7 +238,7 @@ fn draw_chart(
 
         let x_axis_desc = match time_range {
             ChartTimeRange::OneDay => "Time (9:30 AM - 4:00 PM)",
-            ChartTimeRange::FiveDay => "Date",
+            ChartTimeRange::FiveDay | ChartTimeRange::OneMonth | ChartTimeRange::ThreeMonth => "Date",
         };
 
         chart
@@ -223,7 +249,7 @@ fn draw_chart(
             .x_label_formatter(&|dt| {
                 match time_range {
                     ChartTimeRange::OneDay => dt.format("%H:%M").to_string(),
-                    ChartTimeRange::FiveDay => dt.format("%m/%d").to_string(),
+                    ChartTimeRange::FiveDay | ChartTimeRange::OneMonth | ChartTimeRange::ThreeMonth => dt.format("%m/%d").to_string(),
                 }
             })
             .axis_desc_style(TextStyle::from(("sans-serif", 15.0).into_font()))

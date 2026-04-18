@@ -531,6 +531,28 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
                                                             },
                                                             "5D"
                                                         }
+                                                        a {
+                                                            class: "text-sm font-normal text-blue-600 hover:underline cursor-pointer ml-2",
+                                                            onclick: {
+                                                                let symbol_clone = stock.symbol.clone();
+                                                                move |_| {
+                                                                    *chart_expanded_symbol.write() = Some(symbol_clone.clone());
+                                                                    *chart_time_range.write() = ChartTimeRange::OneMonth;
+                                                                }
+                                                            },
+                                                            "1M"
+                                                        }
+                                                        a {
+                                                            class: "text-sm font-normal text-blue-600 hover:underline cursor-pointer ml-2",
+                                                            onclick: {
+                                                                let symbol_clone = stock.symbol.clone();
+                                                                move |_| {
+                                                                    *chart_expanded_symbol.write() = Some(symbol_clone.clone());
+                                                                    *chart_time_range.write() = ChartTimeRange::ThreeMonth;
+                                                                }
+                                                            },
+                                                            "3M"
+                                                        }
                                                     }
                                                     div { class: "grid grid-cols-3 gap-y-3 gap-x-4",
                                                         DetailCell { label: "Open".to_string(), value: format_opt(stock.open.map(|v| format!("{:.2}", v))) }

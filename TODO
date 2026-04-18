@@ -1,7 +1,7 @@
 * Update the layout of the detail view.
+  * Add the date to the chart hover. For the 1-day chart, also add the time.
   * Add graph(s) to the view potentially for category.
-        * 3-Month
-        + 6-Month
+        * 6-Month
 + Update the main table's header alignment
 + Resize the initial window size based on its content
 + Add more data to the detail view.
