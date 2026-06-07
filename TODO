@@ -1,3 +1,17 @@
+NOTE: Before attempting to fix any charts, add the remaining charts for option-2. If they look good, then replace option-1 charts with those from option-2.
+
++ Fix the 5-day chart
+  + Align the first date to the y-axis start
+  + Update the mock data logic to get 5 days of data
++ Fix the 1-month chart
+  + The first date should be 30 days from the current date
+  + The last date should align with the last point on the y-axis
++ Fix the 3-month chart
+  + The first date should be 90 days from the current date
+  + The last date should align with the last point on the y-axis
++ Fix the 6-month chart
+  + The first date should be 180 days from the current date
+  + The last date should align with the last point on the y-axis
 + Implement ingesting actual data
 + Add 1-Year, 5-Year charts
 + Resize the initial window size based on its content
@@ -5,4 +19,3 @@
 + Add more data to the detail view
   + Per Share ?
 + Find a way to resolve the key collision between {symbol}-row and {symbol}-details in the TableContents function
-  
