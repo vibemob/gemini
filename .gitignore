@@ -9,4 +9,7 @@
 # These are configuration files to ignore
 .envrc
 
+# Ignore generated tailwind file
+assets/tailwind.css
+
 node_modules

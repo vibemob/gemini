@@ -766,6 +766,7 @@ dependencies = [
  "dioxus-config-macros",
  "dioxus-core",
  "dioxus-core-macro",
+ "dioxus-desktop",
  "dioxus-devtools",
  "dioxus-document",
  "dioxus-history",

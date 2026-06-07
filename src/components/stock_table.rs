@@ -1,6 +1,7 @@
 use crate::components::{StockLineChart, ChartTimeRange};
 use crate::data_models::chart_data::StockQuoteData;
 use dioxus::prelude::*;
+use dioxus::logger::tracing::info;
 use std::cmp::Ordering;
 
 /// A component that renders a table for stock data.
@@ -157,6 +158,7 @@ pub fn StockTable() -> Element {
             mock_stock_meta,
         ];
 
+        info!("Fetched {} stocks", stocks.len());
         // The hook expects a Result, so we wrap our mock data in Ok.
         // We explicitly type the error to match what `reqwest` would produce.
         Ok::<_, reqwest::Error>(stocks)
@@ -246,8 +248,14 @@ pub fn StockTable() -> Element {
                                     }
                                 },
                                 // If we have data, render the table
-                                Some(Ok(stocks)) => rsx! {
-                                    TableContents { stocks: stocks.clone() }
+                                Some(Ok(stocks)) => {
+                                    info!("Rendering table with {} stocks", stocks.len());
+                                    if stocks.is_empty() {
+                                        info!("WARNING: stocks vector is empty!");
+                                    }
+                                    rsx! {
+                                        TableContents { stocks: stocks.clone() }
+                                    }
                                 }
                             }
                         }
@@ -348,6 +356,7 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
                     ordering
                 }
             });
+            info!("Sorted {} stocks by column {} with {:?} direction", stocks.len(), col_index, direction);
         }
         stocks
     });
@@ -360,10 +369,11 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
                     {
                         let is_sorted_col = (*sort_by.read()).is_some_and(|(col_idx, _dir)| col_idx == i);
                         let font_weight_class = if is_sorted_col { "font-bold text-black" } else { "font-semibold text-gray-400" };
+                        let align_class = if i < 2 { "text-left" } else { "text-right" };
+                        let justify_class = if i >= 2 { "justify-end" } else { "justify-start" };
                         rsx!{
                             th {
-                                class: "group px-4 py-3 text-xs uppercase tracking-wider cursor-pointer hover:bg-gray-50 {font_weight_class}",
-                                class: if i < 2 { "text-left" } else { "text-right" },
+                                class: "group px-4 py-3 text-xs uppercase tracking-wider cursor-pointer hover:bg-gray-50 {font_weight_class} {align_class}",
                                 onclick: move |_| {
                                     // Read the current sort state and immediately drop the read guard
                                     let new_sort = if let Some((current_col, current_dir)) = *sort_by.read() {
@@ -378,12 +388,13 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
                                         // If no sort is active, set it to descending
                                         Some((i, SortDirection::Desc))
                                     };
+                                    let direction = new_sort.as_ref().map(|(_, d)| d);
                                     sort_by.set(new_sort);
+                                    info!("Sort triggered: column index {}, direction: {:?}", i, direction);
                                 },
 
                                 div {
-                                    class: "flex items-center",
-                                    class: if i >= 2 { "justify-end" } else { "justify-start" },
+                                    class: "flex items-center {justify_class}",
 
                                     // Column title
                                     span { "{col}" }
@@ -433,7 +444,10 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
                     rsx! {
                         tr {
                             class: "hover:bg-gray-50 border-b border-gray-200",
-                            key: "{symbol}-row",
+                            // This key causes a key collision with the {symbol}-details
+                            // key in the subsequent details tr element. We may want to find
+                            // a way to structure the code so both can be used.
+                            // key: "{symbol}-row",
                             td {
                                 class: "px-3 py-4 text-sm text-blue-600 font-medium text-left cursor-pointer hover:underline",
                                 onclick: move |_| {
@@ -467,7 +481,8 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
                         if is_expanded {
                             tr {
                                 class: "bg-white border-b border-gray-200",
-                                key: "{symbol}-details",
+                                // COMMENT: Find out what this does. Maybe we don't need it.
+                                // key: "{symbol}-details",
                                 td {
                                     colspan: "9",
                                     class: "p-0",
@@ -496,7 +511,7 @@ fn TableContents(stocks: Vec<StockQuoteData>) -> Element {
                                                 // Chart Content Section
                                                 div {
                                                     class: "chart-content",
-                                                    StockLineChart { symbol: stock.clone(), time_range: *chart_time_range.read() }
+                                                    StockLineChart { key: stock.symbol.to_string(), symbol: stock.clone(), time_range: *chart_time_range.read() }
                                                 }
                                             }
                                         }

@@ -2,6 +2,7 @@ use crate::data_models::chart_data::{StockChartData, StockQuoteData};
 use crate::services::market_data::{fetch_intraday_data_for_chart, fetch_5day_data_for_chart, fetch_1month_data_for_chart, fetch_3month_data_for_chart, fetch_6month_data_for_chart, MARKET_CLOSE_H, MARKET_CLOSE_M, MARKET_OPEN_H, MARKET_OPEN_M};
 use chrono::{NaiveTime, TimeZone, Utc};
 use dioxus::prelude::*;
+use dioxus::logger::tracing::info;
 
 // Plotters imports
 use plotters::prelude::*;
@@ -149,6 +150,7 @@ fn draw_chart(
     height: u32,
     time_range: ChartTimeRange,
 ) -> Result<(String, ChartDrawingContext), Box<dyn std::error::Error>> {
+    info!("draw_chart called: {} points, width={}, height={}", data.points.len(), width, height);
     let mut buffer = vec![0u8; (width * height * 3) as usize];
 
     // Determine chart title based on time range
@@ -235,6 +237,8 @@ fn draw_chart(
         let y_min = min_close - y_padding;
         let y_max = max_close + y_padding;
 
+        info!("Chart Y-axis range: min={:.2}, max={:.2}", y_min, y_max);
+
         let margin = 15;
         let x_label_area_size = 30;
         let y_label_area_size = 60;
@@ -287,21 +291,6 @@ fn draw_chart(
             ))?
             .label("Close Price")
             .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUE.mix(0.8)));
-
-        // Draw normal dots for each point, excluding the hovered one
-        chart.draw_series(
-            data.points
-                .iter()
-                .enumerate()
-                .filter(|(idx, _)| Some(*idx) != hovered_point_idx)
-                .map(|(_, p)| {
-                    Circle::new(
-                        (Utc.timestamp_millis_opt(p.timestamp).unwrap(), p.close),
-                        3,
-                        ShapeStyle::from(&BLUE).filled(),
-                    )
-                }),
-        )?;
 
         // Draw the hovered dot if applicable
         if let Some(idx) = hovered_point_idx {
@@ -370,6 +359,7 @@ fn draw_chart(
             }
         }
 
+        info!("Chart drawn successfully, presenting");
         root_area.present()?;
 
         (start_datetime_utc, end_datetime_utc, y_min, y_max, plot_left, plot_top, plot_width, plot_height)

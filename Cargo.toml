@@ -8,7 +8,7 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dioxus = { version = "0.7.3", features = ["router"] }
+dioxus = { version = "0.7.3", features = ["router", "desktop"] }
 serde = { version = "1.0", features = ["derive"] }
 futures = "0.3"
 reqwest = { version = "0.12", features = ["json"] } # No wasm-bindgen for desktop-only
