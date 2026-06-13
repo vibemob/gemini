@@ -24,41 +24,50 @@ enum ChartRange {
 pub fn PriceChart(stock: StockQuoteData) -> Element {
     let symbol = stock.symbol.clone();
     // Use open price if available, else price, else 100.0 as fallback
-    let start_price = stock.open.or(stock.price).unwrap_or(100.0);
+    let base_price = stock.open.or(stock.price).unwrap_or(100.0);
 
     let mut selected_range = use_signal(|| ChartRange::OneDay);
 
     let candles = use_memo(move || {
         let mut data = Vec::new();
-        let mut current_price = start_price;
+        let mut current_price = base_price;
 
         // Simple pseudo-random generator seeded by symbol to keep chart consistent for the stock
         let mut seed = symbol.bytes().fold(0u64, |acc, x| acc.wrapping_add(x as u64));
 
-        // 9:30 AM = 570 min, 4:00 PM = 960 min
-        for t in (570..=960).step_by(15) {
-            // Random delta between -1.50 and +1.50
-            // LCG: x = (a * x + c) % m
-            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
-            let rand_float = (seed as f64) / (u64::MAX as f64); // 0.0 to 1.0
-            let delta = (rand_float * 3.0) - 1.50;
+        let num_days = match *selected_range.read() {
+            ChartRange::OneDay => 1,
+            ChartRange::FiveDay => 5,
+            ChartRange::ThreeMonth => 60,
+            ChartRange::SixMonth => 120,
+        };
 
-            let open = current_price;
-            let close = current_price + delta;
-            let high = open.max(close) + (rand_float * 0.5);
-            let low = open.min(close) - (rand_float * 0.5);
-            let volume = (rand_float * 10000.0) as u64 + 1000;
+        for _ in 0..num_days {
+            // 9:30 AM = 570 min, 4:00 PM = 960 min
+            for t in (570..=960).step_by(15) {
+                // Reduced delta for "consistent" data without wild fluctuations
+                // LCG: x = (a * x + c) % m
+                seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+                let rand_float = (seed as f64) / (u64::MAX as f64);
+                let delta = (rand_float * 0.8) - 0.4;
 
-            data.push(Candle {
-                time: t,
-                open,
-                high,
-                low,
-                close,
-                volume,
-            });
+                let open = current_price;
+                let close = current_price + delta;
+                let high = open.max(close) + (rand_float * 0.2);
+                let low = open.min(close) - (rand_float * 0.2);
+                let volume = (rand_float * 5000.0) as u64 + 1000;
 
-            current_price += delta;
+                data.push(Candle {
+                    time: t,
+                    open,
+                    high,
+                    low,
+                    close,
+                    volume,
+                });
+
+                current_price = close;
+            }
         }
         data
     });
