@@ -12,11 +12,21 @@ struct Candle {
     volume: u64,
 }
 
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum ChartRange {
+    OneDay,
+    FiveDay,
+    ThreeMonth,
+    SixMonth,
+}
+
 #[component]
 pub fn PriceChart(stock: StockQuoteData) -> Element {
     let symbol = stock.symbol.clone();
     // Use open price if available, else price, else 100.0 as fallback
     let start_price = stock.open.or(stock.price).unwrap_or(100.0);
+
+    let mut selected_range = use_signal(|| ChartRange::OneDay);
 
     let candles = use_memo(move || {
         let mut data = Vec::new();
@@ -121,7 +131,35 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
     rsx! {
         div {
             class: "mt-6 p-4 bg-white rounded shadow",
-            h3 { class: "text-lg font-semibold mb-2 text-gray-700", "Intraday Price Movement (Mock)" }
+            div {
+                class: "flex justify-between items-center mb-2",
+                h3 { class: "text-lg font-semibold text-gray-700", "Price Movement" }
+                div {
+                    class: "flex space-x-12 text-sm font-medium",
+                    for range in [ChartRange::OneDay, ChartRange::FiveDay, ChartRange::ThreeMonth, ChartRange::SixMonth] {
+                        {
+                            let is_selected = *selected_range.read() == range;
+                            let label = match range {
+                                ChartRange::OneDay => "1D",
+                                ChartRange::FiveDay => "5D",
+                                ChartRange::ThreeMonth => "3M",
+                                ChartRange::SixMonth => "6M",
+                            };
+                            if is_selected {
+                                rsx! { span { class: "text-gray-900", "{label}" } }
+                            } else {
+                                rsx! {
+                                    a {
+                                        class: "text-blue-600 cursor-pointer hover:underline",
+                                        onclick: move |_| selected_range.set(range),
+                                        "{label}"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             div {
                 class: "relative select-none",
                 style: "width: {width}px; height: {height}px;",
