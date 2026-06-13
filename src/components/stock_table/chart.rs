@@ -130,7 +130,7 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
 
     rsx! {
         div {
-            class: "mt-6 p-4 bg-white rounded shadow",
+            class: "mt-6 p-4 rounded shadow mr-2.5",
             div {
                 class: "flex justify-between items-center mb-2",
                 h3 { class: "text-lg font-semibold text-gray-700", "Price Movement" }
