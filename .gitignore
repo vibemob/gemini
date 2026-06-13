@@ -10,3 +10,6 @@
 .envrc
 
 node_modules
+
+# Ignore generated Tailwind changes
+assets/tailwind.css

@@ -132,33 +132,9 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
         div {
             class: "mt-6 p-4 rounded shadow mr-2.5",
             div {
-                class: "flex justify-between items-center mb-2",
+                class: "mb-2 text-center",
+                style: "width: {width}px;",
                 h3 { class: "text-lg font-semibold text-gray-700", "Price Movement" }
-                div {
-                    class: "flex space-x-12 text-sm font-medium",
-                    for range in [ChartRange::OneDay, ChartRange::FiveDay, ChartRange::ThreeMonth, ChartRange::SixMonth] {
-                        {
-                            let is_selected = *selected_range.read() == range;
-                            let label = match range {
-                                ChartRange::OneDay => "1D",
-                                ChartRange::FiveDay => "5D",
-                                ChartRange::ThreeMonth => "3M",
-                                ChartRange::SixMonth => "6M",
-                            };
-                            if is_selected {
-                                rsx! { span { class: "text-gray-900", "{label}" } }
-                            } else {
-                                rsx! {
-                                    a {
-                                        class: "text-blue-600 cursor-pointer hover:underline",
-                                        onclick: move |_| selected_range.set(range),
-                                        "{label}"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             }
             div {
                 class: "relative select-none",
@@ -245,6 +221,35 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
                                     span { class: "text-right font-mono", "{c.close:.2}" }
                                     span { class: "text-gray-500", "Volume" }
                                     span { class: "text-right font-mono", "{c.volume}" }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            div {
+                class: "flex justify-start mt-4",
+                style: "width: {width}px; padding-left: {margin + y_label_area}px;",
+                div {
+                    class: "flex space-x-12 text-sm font-medium",
+                    for range in [ChartRange::OneDay, ChartRange::FiveDay, ChartRange::ThreeMonth, ChartRange::SixMonth] {
+                        {
+                            let is_selected = *selected_range.read() == range;
+                            let label = match range {
+                                ChartRange::OneDay => "1D",
+                                ChartRange::FiveDay => "5D",
+                                ChartRange::ThreeMonth => "3M",
+                                ChartRange::SixMonth => "6M",
+                            };
+                            if is_selected {
+                                rsx! { span { class: "text-gray-900", "{label}" } }
+                            } else {
+                                rsx! {
+                                    a {
+                                        class: "text-blue-600 cursor-pointer hover:underline",
+                                        onclick: move |_| selected_range.set(range),
+                                        "{label}"
+                                    }
                                 }
                             }
                         }

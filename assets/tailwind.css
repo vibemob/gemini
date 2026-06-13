@@ -298,9 +298,6 @@
   .items-center {
     align-items: center;
   }
-  .justify-between {
-    justify-content: space-between;
-  }
   .justify-end {
     justify-content: flex-end;
   }
@@ -381,9 +378,6 @@
   }
   .bg-gray-50 {
     background-color: var(--color-gray-50);
-  }
-  .bg-red-500 {
-    background-color: var(--color-red-500);
   }
   .bg-white {
     background-color: var(--color-white);
