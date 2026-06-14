@@ -4,6 +4,7 @@ use super::types::StockQuoteData;
 
 #[derive(Clone, Debug, PartialEq)]
 struct Candle {
+    day_idx: i32,
     time: i32,
     open: f64,
     high: f64,
@@ -42,7 +43,7 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
             ChartRange::SixMonth => 120,
         };
 
-        for _ in 0..num_days {
+        for d in 0..num_days {
             // 9:30 AM = 570 min, 4:00 PM = 960 min
             for t in (570..=960).step_by(15) {
                 // Reduced delta for "consistent" data without wild fluctuations
@@ -58,6 +59,7 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
                 let volume = (rand_float * 5000.0) as u64 + 1000;
 
                 data.push(Candle {
+                    day_idx: d as i32,
                     time: t,
                     open,
                     high,
@@ -83,6 +85,7 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
 
     let chart_svg = use_memo(move || {
         let data = candles.read();
+        let range = *selected_range.read();
         if data.is_empty() {
             return String::new();
         }
@@ -95,6 +98,13 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
             let min_price = data.iter().map(|c| c.close).fold(f64::INFINITY, f64::min);
             let max_price = data.iter().map(|c| c.close).fold(f64::NEG_INFINITY, f64::max);
 
+            let x_label_count = match range {
+                ChartRange::OneDay => 10,
+                ChartRange::FiveDay => 5,
+                ChartRange::ThreeMonth => 3,
+                ChartRange::SixMonth => 6,
+            };
+
             let mut chart = ChartBuilder::on(&root)
                 .margin(margin)
                 .x_label_area_size(x_label_area)
@@ -103,17 +113,23 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
                 .unwrap();
 
             chart.configure_mesh()
-                .x_labels(10)
+                .x_labels(x_label_count)
                 .y_labels(5)
                 .disable_x_mesh()
                 .disable_y_mesh()
-                .x_label_formatter(&|idx| {
+                .x_label_formatter(&move |idx| {
                     if let Some(c) = data.get(*idx as usize) {
-                        let h = c.time / 60;
-                        let m = c.time % 60;
-                        let am_pm = if h >= 12 { "PM" } else { "AM" };
-                        let h_12 = if h > 12 { h - 12 } else if h == 0 { 12 } else { h };
-                        format!("{:02}:{:02} {}", h_12, m, am_pm)
+                        match range {
+                            ChartRange::OneDay => {
+                                let h = c.time / 60;
+                                let m = c.time % 60;
+                                let am_pm = if h >= 12 { "PM" } else { "AM" };
+                                let h_12 = if h > 12 { h - 12 } else if h == 0 { 12 } else { h };
+                                format!("{:02}:{:02} {}", h_12, m, am_pm)
+                            }
+                            ChartRange::FiveDay => format!("Day {}", c.day_idx + 1),
+                            _ => format!("Month {}", (c.day_idx / 20) + 1),
+                        }
                     } else {
                         String::new()
                     }
@@ -192,6 +208,13 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
                         let am_pm = if h >= 12 { "PM" } else { "AM" };
                         let h_12 = if h > 12 { h - 12 } else if h == 0 { 12 } else { h };
 
+                        let range = *selected_range.read();
+                        let tooltip_title = match range {
+                            ChartRange::OneDay => format!("Today, {h_12}:{m:02} {am_pm}"),
+                            ChartRange::FiveDay => format!("Day {}, {h_12}:{m:02} {am_pm}", c.day_idx + 1),
+                            _ => format!("Month {}, Day {}", (c.day_idx / 20) + 1, (c.day_idx % 20) + 1),
+                        };
+
                         let data = candles.read();
                         let min_price = data.iter().map(|c| c.close).fold(f64::INFINITY, f64::min);
                         let max_price = data.iter().map(|c| c.close).fold(f64::NEG_INFINITY, f64::max);
@@ -218,7 +241,7 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
                             div {
                                 class: "absolute top-4 bg-white/95 backdrop-blur border border-gray-200 p-3 rounded shadow-lg text-xs pointer-events-none z-10",
                                 style: "left: {tooltip_left}px; width: 200px;",
-                                div { class: "font-bold mb-2 border-b pb-1", "Today, {h_12}:{m:02} {am_pm}" }
+                                div { class: "font-bold mb-2 border-b pb-1", "{tooltip_title}" }
                                 div { class: "grid grid-cols-2 gap-1",
                                     span { class: "text-gray-500", "Open" }
                                     span { class: "text-right font-mono", "{c.open:.2}" }
