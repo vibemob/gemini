@@ -1,4 +1,9 @@
-+ Update the main table's header alignment
++ Data ingestion interface
+  + Define the interface
+  + Adapt mock data generation to the interface
+  NOTE: This is so that when we create the real data ingestion we can
+  just swap out the mock implementation for the real implementation, and we
+  can also use the same interface in option 1.
 + Resize the initial window size based on its content
 + Add more data to the detail view.
   + Per Share ?
