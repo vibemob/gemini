@@ -117,7 +117,7 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
                 .y_labels(5)
                 .disable_x_mesh()
                 .disable_y_mesh()
-                .x_label_formatter(&|idx| {
+                .x_label_formatter(& |idx| {
                     if let Some(c) = data.get(*idx as usize) {
                         match range {
                             ChartRange::OneDay => {
@@ -126,9 +126,12 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
                                 let am_pm = if h >= 12 { "PM" } else { "AM" };
                                 let h_12 = if h > 12 { h - 12 } else if h == 0 { 12 } else { h };
                                 format!("{:02}:{:02} {}", h_12, m, am_pm)
+                            },
+                            ChartRange::FiveDay => format!("06/{:02}", 10 + c.day_idx),
+                            _ => {
+                                let start_month = if range == ChartRange::ThreeMonth { 4 } else { 1 };
+                                format!("{:02}/2026", start_month + (c.day_idx / 20))
                             }
-                            ChartRange::FiveDay => format!("Day {}", c.day_idx + 1),
-                            _ => format!("Month {}", (c.day_idx / 20) + 1),
                         }
                     } else {
                         String::new()
@@ -211,8 +214,11 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
                         let range = *selected_range.read();
                         let tooltip_title = match range {
                             ChartRange::OneDay => format!("Today, {h_12}:{m:02} {am_pm}"),
-                            ChartRange::FiveDay => format!("Day {}, {h_12}:{m:02} {am_pm}", c.day_idx + 1),
-                            _ => format!("Month {}, Day {}", (c.day_idx / 20) + 1, (c.day_idx % 20) + 1),
+                            ChartRange::FiveDay => format!("06/{:02}, {h_12}:{m:02} {am_pm}", 10 + c.day_idx),
+                            _ => {
+                                let start_month = if range == ChartRange::ThreeMonth { 4 } else { 1 };
+                                format!("{:02}/{:02}/2026", start_month + (c.day_idx / 20), (c.day_idx % 20) + 1)
+                            }
                         };
 
                         let data = candles.read();

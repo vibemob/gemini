@@ -1,4 +1,3 @@
-+ Fix the x-axis labels on the 5D, 3M, and 6D charts.
 + Update the main table's header alignment
 + Resize the initial window size based on its content
 + Add more data to the detail view.
