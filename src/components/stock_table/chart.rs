@@ -117,7 +117,7 @@ pub fn PriceChart(stock: StockQuoteData) -> Element {
                 .y_labels(5)
                 .disable_x_mesh()
                 .disable_y_mesh()
-                .x_label_formatter(&move |idx| {
+                .x_label_formatter(&|idx| {
                     if let Some(c) = data.get(*idx as usize) {
                         match range {
                             ChartRange::OneDay => {
